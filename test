@@ -1,0 +1,60 @@
+sudo apt update
+apt install wget unzip curl -y
+sudo apt install apache2
+sudo systemctl status apache2
+sudo systemctl start apache2
+sudo systemctl enable apache2
+
+sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+source ~/.bashrc
+nvm list-remote
+nvm install v22.18.0
+
+apt update
+ apt install openjdk-21-jdk
+ java --version
+
+sudo apt update
+sudo apt install maven
+mvn -version
+
+
+sudo apt install mysql-server -y
+sudo systemctl start mysql
+sudo systemctl enable mysql
+
+sudo a2enmod ssl
+sudo a2enmod proxy
+sudo a2enmod proxy_http
+sudo a2enmod rewrite
+sudo a2enmod alias
+sudo a2enmod dir
+sudo a2enmod log_config
+
+
+<VirtualHost *:80>
+    ServerAdmin admin@ssbi.ssbd.in
+    ServerName localhost
+
+    ProxyPreserveHost On
+    ProxyPass /backend/ http://127.0.0.1:8085/
+    ProxyPassReverse /backend/ http://127.0.0.1:8085/
+    #ProxyPass / http://127.0.0.1:5173/
+     # Serve static files from /var/www/html
+    DocumentRoot /var/www/html/frontend
+    <Directory /var/www/html/frontend>
+        Options Indexes FollowSymLinks
+        AllowOverride All
+        Require all granted
+
+        # Rewrite non-file requests to index.html
+        RewriteEngine On
+        RewriteCond %{REQUEST_FILENAME} !-f
+        RewriteCond %{REQUEST_FILENAME} !-d
+        RewriteRule ^ /index.html [L]
+    </Directory>
+</VirtualHost>
+
+
+https://github.com/Saurabh-SSBDigital/Nutan-Nagrik.git
+
