@@ -58,3 +58,95 @@ sudo a2enmod log_config
 
 https://github.com/Saurabh-SSBDigital/Nutan-Nagrik.git
 
+
+
+
+#!/bin/bash
+
+set -e
+
+# Error handling
+trap 'echo "Error occurred at line $LINENO. Exiting script."; exit 1;' ERR
+
+# Variables
+backend_name="lites-backend"
+WorkingDirectory="/root/ATOM/Backend"
+node_version="v20.18.0"
+log_dir="/var/log/$backend_name"
+logrotate_frequency="daily"  # Set to "daily" or "weekly" "monthly" "yearly"
+
+# Step 1: Create the systemd service file
+service_file="/etc/systemd/system/${backend_name}.service"
+
+cat <<EOF > $service_file
+[Unit]
+Description=Lites Backend Application
+After=network.target
+
+[Service]
+User=root
+Group=root
+WorkingDirectory=$WorkingDirectory
+Environment="PATH=/root/.nvm/versions/node/${node_version}/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin"
+ExecStart=/usr/bin/mvn spring-boot:run
+Restart=always
+RestartSec=10
+StandardOutput=append:${log_dir}/${backend_name}.log
+StandardError=append:${log_dir}/${backend_name}-error.log
+SyslogIdentifier=${backend_name}
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+echo "Systemd service file created at $service_file"
+
+# Step 2: Create log directory and set permissions
+mkdir -p $log_dir
+chown root:root $log_dir
+echo "Log directory created and permissions set."
+
+# Step 3: Configure log rotation
+logrotate_conf="/etc/logrotate.d/${backend_name}"
+
+cat <<EOF > $logrotate_conf
+${log_dir}/${backend_name}.log ${log_dir}/${backend_name}-error.log {
+su root root
+${logrotate_frequency}
+rotate 7
+compress
+missingok
+notifempty
+create 0644 root root
+sharedscripts
+postrotate
+systemctl reload ${backend_name} > /dev/null 2>/dev/null || true
+endscript
+}
+EOF
+
+echo "Log rotation configured at $logrotate_conf"
+
+# Step 4: Reload systemd, enable and start the service
+systemctl daemon-reload
+systemctl enable ${backend_name}.service
+systemctl start ${backend_name}.service
+echo "Service ${backend_name} started and enabled."
+
+# Step 5: Check service status and logs
+systemctl status ${backend_name}.service
+echo "Service status checked."
+
+# Step 6: create log using echo command
+echo "this is message for log" >> ${log_dir}/${backend_name}.log
+echo "this is message for error" >> ${log_dir}/${backend_name}-error.log
+
+# Step 7: verify the logrotation
+sudo logrotate -d /etc/logrotate.d/${backend_name}
+cd /var/log/${backend_name}
+ls -lah
+sudo logrotate -f /etc/logrotate.d/${backend_name}
+ls -lah
+cd
+
+
